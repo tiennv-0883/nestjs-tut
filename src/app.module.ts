@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as path from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         synchronize: configService.get('NODE_ENV') !== 'production',
       }),
     }),
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
