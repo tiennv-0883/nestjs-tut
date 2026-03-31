@@ -19,6 +19,14 @@ export class UsersService {
     return this.userRepo.findOne({ where: { email } });
   }
 
+  findByEmailWithPassword(email: string) {
+    return this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+
   findById(id: number) {
     return this.userRepo.findOne({ where: { id } });
   }
