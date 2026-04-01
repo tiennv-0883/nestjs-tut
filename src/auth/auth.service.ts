@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
@@ -20,39 +21,56 @@ export class AuthService {
     return this.blacklist.has(token);
   }
 
-  logout(token: string): void {
+  logout(authorizationHeader: string | undefined): { message: string } {
+    const token = authorizationHeader?.split(' ')[1] ?? '';
     this.blacklist.add(token);
+    return { message: 'Logged out successfully' };
   }
 
   async signup(email: string, password: string, name?: string) {
-    const existing = await this.usersService.findByEmail(email);
-    if (existing) {
-      throw new ConflictException('Email already exists');
-    }
+    await this.checkUserExistingAndThrow(email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return this.usersService.create({
-      email,
-      password: hashedPassword,
-      name,
-    });
+    try {
+      return await this.usersService.create({
+        email,
+        password: hashedPassword,
+        name,
+      });
+    } catch {
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
 
   async login(email: string, password: string) {
+    const user = await this.findUserOrThrow(email);
+    await this.checkPasswordOrThrow(password, user.password);
+
+    const payload = { sub: user.id, email: user.email };
+    return { access_token: this.jwtService.sign(payload) };
+  }
+
+  private throwUnauthorized(): never {
+    throw new UnauthorizedException();
+  }
+
+  private async checkUserExistingAndThrow(email: string): Promise<void> {
+    const existing = await this.usersService.findByEmail(email);
+    if (existing) throw new ConflictException('Email already exists');
+  }
+
+  private async findUserOrThrow(email: string) {
     const user = await this.usersService.findByEmailWithPassword(email);
-    if (!user) throw new UnauthorizedException();
+    if (!user) this.throwUnauthorized();
+    return user;
+  }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new UnauthorizedException();
-
-    const payload = {
-      sub: user.id,
-      email: user.email,
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+  private async checkPasswordOrThrow(
+    password: string,
+    hashedPassword: string,
+  ): Promise<void> {
+    const isMatch = await bcrypt.compare(password, hashedPassword);
+    if (!isMatch) this.throwUnauthorized();
   }
 }

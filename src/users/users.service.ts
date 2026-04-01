@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -9,11 +13,6 @@ export class UsersService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
   ) {}
-
-  create(data: Partial<User>) {
-    const user = this.userRepo.create(data);
-    return this.userRepo.save(user);
-  }
 
   findByEmail(email: string) {
     return this.userRepo.findOne({ where: { email } });
@@ -27,16 +26,40 @@ export class UsersService {
       .getOne();
   }
 
-  findById(id: number) {
-    return this.userRepo.findOne({ where: { id } });
+  async findById(id: number) {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`User #${id} not found`);
+    return user;
   }
 
-  async findAll() {
+  findAll() {
     return this.userRepo.find();
   }
 
+  async create(data: Partial<User>) {
+    const user = this.userRepo.create(data);
+    return this.executeOrThrow(
+      () => this.userRepo.save(user),
+      'Failed to create user',
+    );
+  }
+
   async update(id: number, data: Partial<User>) {
-    await this.userRepo.update(id, data);
-    return this.findById(id); // trả user sau khi update
+    await this.executeOrThrow(
+      () => this.userRepo.update(id, data),
+      'Failed to update user',
+    );
+    return this.findById(id);
+  }
+
+  private async executeOrThrow<T>(
+    fn: () => Promise<T>,
+    errorMessage: string,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch {
+      throw new InternalServerErrorException(errorMessage);
+    }
   }
 }
