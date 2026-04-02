@@ -114,8 +114,9 @@ describe('UsersService', () => {
         name: null,
       });
 
-      const savedArg = mockUserRepository.create.mock
-        .calls[0][0] as Partial<User>;
+      const savedArg = (
+        mockUserRepository.create.mock.calls as [Partial<User>][]
+      )[0][0];
       expect(savedArg.password).not.toBe('plain123');
       expect(savedArg.password).toMatch(/^\$2[ab]\$/);
     });
@@ -163,13 +164,13 @@ describe('UsersService', () => {
 
       await service.update(1, { name: 'Tien', password: 'newpass' });
 
-      expect(mockUserRepository.update).toHaveBeenCalledTimes(2);
-      const passwordCall = mockUserRepository.update.mock.calls[1] as [
+      expect(mockUserRepository.update).toHaveBeenCalledTimes(1);
+      const passwordCall = mockUserRepository.update.mock.calls[0] as [
         number,
         Partial<User>,
       ];
       expect(passwordCall[1].password).toMatch(/^\$2[ab]\$/);
-      expect(passwordCall[1]).not.toHaveProperty('name');
+      expect(passwordCall[1].name).toBe('Tien');
     });
 
     it('throws InternalServerErrorException when update fails', async () => {

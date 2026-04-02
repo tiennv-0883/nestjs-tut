@@ -35,7 +35,7 @@ export class UsersService {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user)
       throw new NotFoundException(t(this.i18n, 'user.not-found', { id }));
-    return new UserSerializer(user, { type }).serialize();
+    return new UserSerializer({ ...user }, { type }).serialize();
   }
 
   async findByIdRaw(id: number): Promise<User> {
@@ -47,7 +47,10 @@ export class UsersService {
 
   async findAll() {
     const users = await this.userRepo.find();
-    return UserSerializer.serializeMany(users, { type: 'BASIC_INFO' });
+    return UserSerializer.serializeMany(
+      users.map((u) => ({ ...u })),
+      { type: 'BASIC_INFO' },
+    );
   }
 
   async create(data: Partial<User>) {
@@ -59,23 +62,20 @@ export class UsersService {
       () => this.userRepo.save(user),
       t(this.i18n, 'user.create-failed'),
     );
-    return new UserSerializer(saved, { type: 'PROFILE' }).serialize();
+    return new UserSerializer({ ...saved }, { type: 'PROFILE' }).serialize();
   }
 
   async update(id: number, data: Partial<User>) {
     const { password, ...safeData } = data;
 
-    if (Object.keys(safeData).length > 0) {
-      await this.executeOrThrow(
-        () => this.userRepo.update(id, safeData),
-        t(this.i18n, 'user.update-failed'),
-      );
+    const payload: Partial<User> = { ...safeData };
+    if (password) {
+      payload.password = await bcrypt.hash(password, 10);
     }
 
-    if (password) {
-      const hashed = await bcrypt.hash(password, 10);
+    if (Object.keys(payload).length > 0) {
       await this.executeOrThrow(
-        () => this.userRepo.update(id, { password: hashed }),
+        () => this.userRepo.update(id, payload),
         t(this.i18n, 'user.update-failed'),
       );
     }

@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import {
   ConflictException,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -201,7 +202,7 @@ describe('AuthService', () => {
         expiresAt: future,
       });
       mockUsersService.findByIdRaw.mockRejectedValueOnce(
-        new Error('not found'),
+        new NotFoundException('user not found'),
       );
       mockRefreshTokenRepo.delete.mockResolvedValueOnce({});
 
@@ -209,6 +210,24 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
       expect(mockRefreshTokenRepo.delete).toHaveBeenCalledWith(5);
+    });
+
+    it('propagates non-NotFoundException errors without deleting the token', async () => {
+      const future = new Date(Date.now() + 60_000);
+      mockRefreshTokenRepo.findOne.mockResolvedValueOnce({
+        id: 5,
+        tokenHash,
+        userId: 1,
+        expiresAt: future,
+      });
+      mockUsersService.findByIdRaw.mockRejectedValueOnce(
+        new InternalServerErrorException('db timeout'),
+      );
+
+      await expect(service.refresh(rawToken)).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      expect(mockRefreshTokenRepo.delete).not.toHaveBeenCalled();
     });
   });
 

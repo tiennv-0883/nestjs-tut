@@ -1,6 +1,5 @@
 import {
   Controller,
-  Post,
   Body,
   Get,
   Param,
@@ -11,26 +10,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard, JwtPayload } from '../auth/jwt.guard';
-
-import { Request } from 'express';
-
-interface RequestWithUser extends Request {
-  user: JwtPayload;
-}
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import type { RequestWithUser } from '../auth/jwt.guard';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
-
-  @Post()
-  create(@Body() body: CreateUserDto) {
-    return this.usersService.create(body);
-  }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
@@ -38,11 +26,13 @@ export class UsersController {
     return this.usersService.findById(req.user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   find(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findById(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll() {
     return this.usersService.findAll();

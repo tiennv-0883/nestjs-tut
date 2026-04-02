@@ -17,7 +17,7 @@ export class User {
   @Column({ select: false })
   password: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   name: string | null;
 
   @CreateDateColumn()

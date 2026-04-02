@@ -17,12 +17,8 @@ import {
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { JwtAuthGuard, JwtPayload } from './jwt.guard';
-import { Request } from 'express';
-
-interface RequestWithUser extends Request {
-  user: JwtPayload;
-}
+import { JwtAuthGuard } from './jwt.guard';
+import type { RequestWithUser } from './jwt.guard';
 
 @ApiTags('Auth')
 @Controller('auth')

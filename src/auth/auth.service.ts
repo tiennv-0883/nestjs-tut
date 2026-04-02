@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -73,9 +74,12 @@ export class AuthService {
 
     const user = await this.usersService
       .findByIdRaw(stored.userId)
-      .catch(async () => {
-        await this.refreshTokenRepo.delete(stored.id);
-        throw new UnauthorizedException();
+      .catch(async (err: unknown) => {
+        if (err instanceof NotFoundException) {
+          await this.refreshTokenRepo.delete(stored.id);
+          throw new UnauthorizedException();
+        }
+        throw err;
       });
     const access_token = this.jwtService.sign({
       sub: user.id,

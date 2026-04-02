@@ -7,7 +7,7 @@ const USER_FIELDS: Record<UserSerializerType, string[]> = {
 
 export class UserSerializer {
   constructor(
-    private readonly user: Record<string, any>,
+    private readonly user: Record<string, unknown>,
     private readonly options: { type: UserSerializerType },
   ) {}
 
@@ -15,7 +15,7 @@ export class UserSerializer {
     return USER_FIELDS[this.options.type] || [];
   }
 
-  serialize(): Record<string, any> {
+  serialize(): Record<string, unknown> {
     return this.allowedFields.reduce(
       (acc, field) => {
         if (this.user[field] !== undefined) {
@@ -23,14 +23,14 @@ export class UserSerializer {
         }
         return acc;
       },
-      {} as Record<string, any>,
+      {} as Record<string, unknown>,
     );
   }
 
   static serializeMany(
-    users: Record<string, any>[],
+    users: Record<string, unknown>[],
     options: { type: UserSerializerType },
-  ): Record<string, any>[] {
+  ): Record<string, unknown>[] {
     return users.map((user) => new UserSerializer(user, options).serialize());
   }
 }
