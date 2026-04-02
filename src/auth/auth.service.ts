@@ -24,9 +24,17 @@ export class AuthService {
     private i18n: I18nService,
   ) {}
 
-  async logout(refreshToken: string): Promise<{ message: string }> {
+  async logout(
+    refreshToken: string,
+    userId: number,
+  ): Promise<{ message: string }> {
     const hash = this.hashToken(refreshToken);
-    await this.refreshTokenRepo.delete({ tokenHash: hash });
+    const stored = await this.refreshTokenRepo.findOne({
+      where: { tokenHash: hash },
+    });
+    if (stored && stored.userId === userId) {
+      await this.refreshTokenRepo.delete(stored.id);
+    }
     return { message: t(this.i18n, 'auth.logged-out') };
   }
 
@@ -63,7 +71,12 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const user = await this.usersService.findByIdRaw(stored.userId);
+    const user = await this.usersService
+      .findByIdRaw(stored.userId)
+      .catch(async () => {
+        await this.refreshTokenRepo.delete(stored.id);
+        throw new UnauthorizedException();
+      });
     const access_token = this.jwtService.sign({
       sub: user.id,
       email: user.email,

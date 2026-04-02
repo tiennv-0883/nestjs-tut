@@ -8,17 +8,18 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/jwt.guard';
+import { JwtAuthGuard, JwtPayload } from '../auth/jwt.guard';
 
 import { Request } from 'express';
 
 interface RequestWithUser extends Request {
-  user: { sub: number; email: string };
+  user: JwtPayload;
 }
 
 @ApiTags('Users')
@@ -47,8 +48,14 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateUserDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateUserDto,
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user.sub !== id) throw new ForbiddenException();
     return this.usersService.update(id, body);
   }
 }

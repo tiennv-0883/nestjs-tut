@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -16,7 +17,12 @@ import {
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { JwtAuthGuard } from './jwt.guard';
+import { JwtAuthGuard, JwtPayload } from './jwt.guard';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user: JwtPayload;
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -66,7 +72,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  logout(@Body() body: RefreshDto) {
-    return this.authService.logout(body.refresh_token);
+  logout(@Body() body: RefreshDto, @Req() req: RequestWithUser) {
+    return this.authService.logout(body.refresh_token, req.user.sub);
   }
 }
