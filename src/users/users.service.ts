@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
+import * as bcrypt from 'bcrypt';
 import { User } from './user.entity';
 import { t } from '../shared/util';
 import { UserSerializer, UserSerializerType } from './user.serializer';
@@ -43,6 +44,9 @@ export class UsersService {
   }
 
   async create(data: Partial<User>) {
+    if (data.password) {
+      data = { ...data, password: await bcrypt.hash(data.password, 10) };
+    }
     const user = this.userRepo.create(data);
     const saved = await this.executeOrThrow(
       () => this.userRepo.save(user),
@@ -52,6 +56,9 @@ export class UsersService {
   }
 
   async update(id: number, data: Partial<User>) {
+    if (data.password) {
+      data = { ...data, password: await bcrypt.hash(data.password, 10) };
+    }
     await this.executeOrThrow(
       () => this.userRepo.update(id, data),
       t(this.i18n, 'user.update-failed'),

@@ -33,14 +33,8 @@ export class AuthService {
   async signup(email: string, password: string, name?: string) {
     await this.checkUserExistingAndThrow(email);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     try {
-      return await this.usersService.create({
-        email,
-        password: hashedPassword,
-        name,
-      });
+      return await this.usersService.create({ email, password, name });
     } catch {
       throw new InternalServerErrorException(
         t(this.i18n, 'auth.create-user-failed'),
