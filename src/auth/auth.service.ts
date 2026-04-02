@@ -7,6 +7,8 @@ import {
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { I18nService } from 'nestjs-i18n';
+import { t } from '../shared/util';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +17,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private i18n: I18nService,
   ) {}
 
   isTokenBlacklisted(token: string): boolean {
@@ -24,7 +27,7 @@ export class AuthService {
   logout(authorizationHeader: string | undefined): { message: string } {
     const token = authorizationHeader?.split(' ')[1] ?? '';
     this.blacklist.add(token);
-    return { message: 'Logged out successfully' };
+    return { message: t(this.i18n, 'auth.logged-out') };
   }
 
   async signup(email: string, password: string, name?: string) {
@@ -39,7 +42,9 @@ export class AuthService {
         name,
       });
     } catch {
-      throw new InternalServerErrorException('Failed to create user');
+      throw new InternalServerErrorException(
+        t(this.i18n, 'auth.create-user-failed'),
+      );
     }
   }
 
@@ -57,7 +62,8 @@ export class AuthService {
 
   private async checkUserExistingAndThrow(email: string): Promise<void> {
     const existing = await this.usersService.findByEmail(email);
-    if (existing) throw new ConflictException('Email already exists');
+    if (existing)
+      throw new ConflictException(t(this.i18n, 'auth.email-exists'));
   }
 
   private async findUserOrThrow(email: string) {

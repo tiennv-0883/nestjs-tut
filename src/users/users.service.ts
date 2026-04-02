@@ -5,13 +5,17 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { I18nService } from 'nestjs-i18n';
 import { User } from './user.entity';
+import { t } from '../shared/util';
+import { UserSerializer, UserSerializerType } from './user.serializer';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private i18n: I18nService,
   ) {}
 
   findByEmail(email: string) {
@@ -26,28 +30,31 @@ export class UsersService {
       .getOne();
   }
 
-  async findById(id: number) {
+  async findById(id: number, type: UserSerializerType = 'PROFILE') {
     const user = await this.userRepo.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User #${id} not found`);
-    return user;
+    if (!user)
+      throw new NotFoundException(t(this.i18n, 'user.not-found', { id }));
+    return new UserSerializer(user, { type }).serialize();
   }
 
-  findAll() {
-    return this.userRepo.find();
+  async findAll() {
+    const users = await this.userRepo.find();
+    return UserSerializer.serializeMany(users, { type: 'BASIC_INFO' });
   }
 
   async create(data: Partial<User>) {
     const user = this.userRepo.create(data);
-    return this.executeOrThrow(
+    const saved = await this.executeOrThrow(
       () => this.userRepo.save(user),
-      'Failed to create user',
+      t(this.i18n, 'user.create-failed'),
     );
+    return new UserSerializer(saved, { type: 'PROFILE' }).serialize();
   }
 
   async update(id: number, data: Partial<User>) {
     await this.executeOrThrow(
       () => this.userRepo.update(id, data),
-      'Failed to update user',
+      t(this.i18n, 'user.update-failed'),
     );
     return this.findById(id);
   }
