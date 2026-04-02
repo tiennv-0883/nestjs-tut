@@ -4,7 +4,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -16,8 +15,8 @@ import {
 } from '@nestjs/swagger';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './jwt.guard';
-import express from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -32,11 +31,13 @@ export class AuthController {
     return this.authService.signup(body.email, body.password, body.name);
   }
 
-  @ApiOperation({ summary: 'Login and receive JWT token' })
+  @ApiOperation({ summary: 'Login and receive tokens' })
   @ApiResponse({
     status: 200,
-    description: 'Returns access_token',
-    schema: { example: { access_token: 'eyJhbGci...' } },
+    description: 'Returns access_token and refresh_token',
+    schema: {
+      example: { access_token: 'eyJhbGci...', refresh_token: 'abc123...' },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @HttpCode(HttpStatus.OK)
@@ -45,7 +46,16 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
-  @ApiOperation({ summary: 'Logout and invalidate JWT token' })
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Returns new access_token' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh')
+  refresh(@Body() body: RefreshDto) {
+    return this.authService.refresh(body.refresh_token);
+  }
+
+  @ApiOperation({ summary: 'Logout and revoke refresh token' })
   @ApiBearerAuth()
   @ApiResponse({
     status: 200,
@@ -56,7 +66,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  logout(@Req() req: express.Request) {
-    return this.authService.logout(req.headers.authorization);
+  logout(@Body() body: RefreshDto) {
+    return this.authService.logout(body.refresh_token);
   }
 }

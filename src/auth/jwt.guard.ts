@@ -1,7 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { AuthService } from './auth.service';
 
 interface JwtPayload {
   sub: number;
@@ -14,24 +13,16 @@ interface RequestWithUser extends Request {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
-
     const authHeader = request.headers.authorization;
 
     if (!authHeader) return false;
 
-    const parts = authHeader.split(' ');
-    const token = parts[1];
-
+    const token = authHeader.split(' ')[1];
     if (!token) return false;
-
-    if (this.authService.isTokenBlacklisted(token)) return false;
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);

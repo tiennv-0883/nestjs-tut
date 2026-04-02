@@ -38,6 +38,13 @@ export class UsersService {
     return new UserSerializer(user, { type }).serialize();
   }
 
+  async findByIdRaw(id: number): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user)
+      throw new NotFoundException(t(this.i18n, 'user.not-found', { id }));
+    return user;
+  }
+
   async findAll() {
     const users = await this.userRepo.find();
     return UserSerializer.serializeMany(users, { type: 'BASIC_INFO' });
@@ -56,13 +63,23 @@ export class UsersService {
   }
 
   async update(id: number, data: Partial<User>) {
-    if (data.password) {
-      data = { ...data, password: await bcrypt.hash(data.password, 10) };
+    const { password, ...safeData } = data;
+
+    if (Object.keys(safeData).length > 0) {
+      await this.executeOrThrow(
+        () => this.userRepo.update(id, safeData),
+        t(this.i18n, 'user.update-failed'),
+      );
     }
-    await this.executeOrThrow(
-      () => this.userRepo.update(id, data),
-      t(this.i18n, 'user.update-failed'),
-    );
+
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      await this.executeOrThrow(
+        () => this.userRepo.update(id, { password: hashed }),
+        t(this.i18n, 'user.update-failed'),
+      );
+    }
+
     return this.findById(id);
   }
 
