@@ -1,0 +1,4 @@
+{
+  "not-found": "Article '{{args.slug}}' not found",
+  "forbidden": "You are not the author of this article"
+}

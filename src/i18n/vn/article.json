@@ -1,0 +1,4 @@
+{
+  "not-found": "Không tìm thấy bài viết '{{args.slug}}'",
+  "forbidden": "Bạn không phải tác giả của bài viết này"
+}

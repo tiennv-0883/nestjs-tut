@@ -19,6 +19,7 @@ async function bootstrap() {
       .setTitle('NestJS Demo API')
       .setDescription('Demo Nest')
       .setVersion('1.0')
+      .addBearerAuth()
       .addGlobalParameters({
         in: 'header',
         name: 'x-lang',
