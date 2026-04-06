@@ -56,14 +56,13 @@ describe('ArticlesService', () => {
   // ── findAll ───────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    it('returns all published articles ordered by createdAt desc', async () => {
+    it('returns all articles ordered by createdAt desc', async () => {
       const articles = [makeArticle()];
       mockArticleRepo.find.mockResolvedValueOnce(articles);
 
       const result = await service.findAll();
 
       expect(mockArticleRepo.find).toHaveBeenCalledWith({
-        where: { status: 'published' },
         relations: ['author'],
         order: { createdAt: 'DESC' },
       });
@@ -137,15 +136,11 @@ describe('ArticlesService', () => {
   describe('update', () => {
     it('updates article fields and saves', async () => {
       const article = makeArticle();
-      mockArticleRepo.findOne.mockResolvedValueOnce(article); // findBySlug
+      mockArticleRepo.findOne.mockResolvedValueOnce(article); // findById
       const updated = { ...article, body: 'new body' };
       mockArticleRepo.save.mockResolvedValueOnce(updated);
 
-      const result = await service.update(
-        'my-article',
-        { body: 'new body' },
-        1,
-      );
+      const result = await service.update(1, { body: 'new body' }, 1);
 
       expect(mockArticleRepo.save).toHaveBeenCalled();
       expect(result).toEqual(updated);
@@ -156,15 +151,15 @@ describe('ArticlesService', () => {
         makeArticle({ authorId: 5 }),
       );
 
-      await expect(
-        service.update('my-article', { body: 'x' }, 1),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.update(1, { body: 'x' }, 1)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('re-slugifies when title changes', async () => {
       const article = makeArticle({ id: 1, title: 'My Article' });
       mockArticleRepo.findOne
-        .mockResolvedValueOnce(article) // findBySlug
+        .mockResolvedValueOnce(article) // findById
         .mockResolvedValueOnce(null); // unique slug check for new title
       mockArticleRepo.save.mockResolvedValueOnce({
         ...article,
@@ -172,7 +167,7 @@ describe('ArticlesService', () => {
         slug: 'new-title',
       });
 
-      await service.update('my-article', { title: 'New Title' }, 1);
+      await service.update(1, { title: 'New Title' }, 1);
 
       expect(mockArticleRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({ slug: 'new-title' }),
@@ -188,7 +183,7 @@ describe('ArticlesService', () => {
       mockArticleRepo.findOne.mockResolvedValueOnce(article);
       mockArticleRepo.remove.mockResolvedValueOnce(undefined);
 
-      await service.remove('my-article', 1);
+      await service.remove(1, 1);
 
       expect(mockArticleRepo.remove).toHaveBeenCalledWith(article);
     });
@@ -198,7 +193,7 @@ describe('ArticlesService', () => {
         makeArticle({ authorId: 5 }),
       );
 
-      await expect(service.remove('my-article', 1)).rejects.toBeInstanceOf(
+      await expect(service.remove(1, 1)).rejects.toBeInstanceOf(
         ForbiddenException,
       );
     });

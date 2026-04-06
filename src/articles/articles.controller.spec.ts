@@ -97,17 +97,17 @@ describe('ArticlesController', () => {
     });
   });
 
-  // ── PUT /articles/:slug ───────────────────────────────────────────────────
+  // ── PUT /articles/:id ─────────────────────────────────────────────────────
 
   describe('update', () => {
-    it('delegates to service with slug, dto, and userId', async () => {
+    it('delegates to service with id, dto, and userId', async () => {
       const dto = { body: 'updated' };
       const updated = { id: 1, slug: 'hello', body: 'updated' };
       mockArticlesService.update.mockResolvedValueOnce(updated);
 
-      const result = await controller.update('hello', dto, mockReq(1));
+      const result = await controller.update(1, dto, mockReq(1));
 
-      expect(mockArticlesService.update).toHaveBeenCalledWith('hello', dto, 1);
+      expect(mockArticlesService.update).toHaveBeenCalledWith(1, dto, 1);
       expect(result).toEqual(updated);
     });
 
@@ -117,20 +117,20 @@ describe('ArticlesController', () => {
       );
 
       await expect(
-        controller.update('hello', { body: 'x' }, mockReq(99)),
+        controller.update(1, { body: 'x' }, mockReq(99)),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
-  // ── DELETE /articles/:slug ────────────────────────────────────────────────
+  // ── DELETE /articles/:id ──────────────────────────────────────────────────
 
   describe('remove', () => {
-    it('delegates to service with slug and userId', async () => {
+    it('delegates to service with id and userId', async () => {
       mockArticlesService.remove.mockResolvedValueOnce(undefined);
 
-      await controller.remove('hello', mockReq(1));
+      await controller.remove(1, mockReq(1));
 
-      expect(mockArticlesService.remove).toHaveBeenCalledWith('hello', 1);
+      expect(mockArticlesService.remove).toHaveBeenCalledWith(1, 1);
     });
 
     it('propagates ForbiddenException when not the author', async () => {
@@ -138,9 +138,9 @@ describe('ArticlesController', () => {
         new ForbiddenException(),
       );
 
-      await expect(
-        controller.remove('hello', mockReq(99)),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(controller.remove(1, mockReq(99))).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('is protected by JwtAuthGuard', () => {

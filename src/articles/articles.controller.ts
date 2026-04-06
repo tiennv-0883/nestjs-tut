@@ -6,6 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Put,
   Req,
@@ -34,6 +36,14 @@ export class ArticlesController {
     return this.articlesService.findAll();
   }
 
+  @ApiOperation({ summary: 'Get my articles (drafts + published)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  findMine(@Req() req: RequestWithUser) {
+    return this.articlesService.findByAuthor(req.user.sub);
+  }
+
   @ApiOperation({ summary: 'Get a single article by slug' })
   @ApiResponse({ status: 404, description: 'Article not found' })
   @Get(':slug')
@@ -54,13 +64,35 @@ export class ArticlesController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Put(':slug')
+  @Put(':id')
   update(
-    @Param('slug') slug: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateArticleDto,
     @Req() req: RequestWithUser,
   ) {
-    return this.articlesService.update(slug, dto, req.user.sub);
+    return this.articlesService.update(id, dto, req.user.sub);
+  }
+
+  @ApiOperation({ summary: 'Publish an article (author only)' })
+  @ApiResponse({ status: 200, description: 'Article published' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Patch(':slug/publish')
+  publish(@Param('slug') slug: string, @Req() req: RequestWithUser) {
+    return this.articlesService.publish(slug, req.user.sub);
+  }
+
+  @ApiOperation({ summary: 'Unpublish an article back to draft (author only)' })
+  @ApiResponse({ status: 200, description: 'Article unpublished' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Patch(':slug/unpublish')
+  unpublish(@Param('slug') slug: string, @Req() req: RequestWithUser) {
+    return this.articlesService.unpublish(slug, req.user.sub);
   }
 
   @ApiOperation({ summary: 'Delete an article (author only)' })
@@ -68,8 +100,8 @@ export class ArticlesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete(':slug')
-  remove(@Param('slug') slug: string, @Req() req: RequestWithUser) {
-    return this.articlesService.remove(slug, req.user.sub);
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithUser) {
+    return this.articlesService.remove(id, req.user.sub);
   }
 }

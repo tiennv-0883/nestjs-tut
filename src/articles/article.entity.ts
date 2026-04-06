@@ -33,7 +33,7 @@ export class Article {
   @Column({ type: 'json', nullable: true })
   tags: string[] | null;
 
-  @Column({ type: 'varchar', default: 'draft' })
+  @Column({ type: 'varchar', length: 20, default: 'draft' })
   status: ArticleStatus;
 
   @Column()
