@@ -7,6 +7,7 @@ import { Article } from './article.entity';
 
 describe('ArticlesService', () => {
   let service: ArticlesService;
+  let mockQb: Record<string, jest.Mock>;
 
   const mockArticleRepo = {
     find: jest.fn(),
@@ -14,6 +15,7 @@ describe('ArticlesService', () => {
     create: jest.fn(),
     save: jest.fn(),
     remove: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const mockI18nService = {
@@ -38,6 +40,18 @@ describe('ArticlesService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    mockQb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn(),
+    };
+    mockArticleRepo.createQueryBuilder.mockReturnValue(mockQb);
+    mockI18nService.t.mockReturnValue('translated');
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ArticlesService,
@@ -56,17 +70,49 @@ describe('ArticlesService', () => {
   // ── findAll ───────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    it('returns all articles ordered by createdAt desc', async () => {
+    it('returns paginated articles with default page and limit', async () => {
       const articles = [makeArticle()];
-      mockArticleRepo.find.mockResolvedValueOnce(articles);
+      mockQb.getManyAndCount.mockResolvedValueOnce([articles, 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({});
 
-      expect(mockArticleRepo.find).toHaveBeenCalledWith({
-        relations: ['author'],
-        order: { createdAt: 'DESC' },
+      expect(result).toEqual({
+        data: articles,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
       });
-      expect(result).toEqual(articles);
+    });
+
+    it('applies search filter when provided', async () => {
+      mockQb.getManyAndCount.mockResolvedValueOnce([[], 0]);
+
+      await service.findAll({ search: 'nestjs' });
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('LIKE :search'),
+        expect.objectContaining({ search: '%nestjs%' }),
+      );
+    });
+
+    it('applies authorId filter when provided', async () => {
+      mockQb.getManyAndCount.mockResolvedValueOnce([[], 0]);
+
+      await service.findAll({ authorId: 2 });
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        'article.authorId = :authorId',
+        { authorId: 2 },
+      );
+    });
+
+    it('calculates correct totalPages', async () => {
+      mockQb.getManyAndCount.mockResolvedValueOnce([[], 25]);
+
+      const result = await service.findAll({ page: 1, limit: 10 });
+
+      expect(result.totalPages).toBe(3);
     });
   });
 
@@ -115,7 +161,6 @@ describe('ArticlesService', () => {
     });
 
     it('appends a counter when slug already exists', async () => {
-      // first findOne (slug 'my-article') → exists with different id
       mockArticleRepo.findOne
         .mockResolvedValueOnce(makeArticle({ id: 99 })) // 'my-article' taken
         .mockResolvedValueOnce(null); // 'my-article-1' free
@@ -194,6 +239,62 @@ describe('ArticlesService', () => {
       );
 
       await expect(service.remove(1, 1)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+  });
+
+  // ── publish ───────────────────────────────────────────────────────────────
+
+  describe('publish', () => {
+    it('sets status to published and saves', async () => {
+      const article = makeArticle({ status: 'draft' });
+      mockArticleRepo.findOne.mockResolvedValueOnce(article);
+      const saved = { ...article, status: 'published' };
+      mockArticleRepo.save.mockResolvedValueOnce(saved);
+
+      const result = await service.publish('my-article', 1);
+
+      expect(mockArticleRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'published' }),
+      );
+      expect(result).toEqual(saved);
+    });
+
+    it('throws ForbiddenException when requester is not the author', async () => {
+      mockArticleRepo.findOne.mockResolvedValueOnce(
+        makeArticle({ authorId: 5 }),
+      );
+
+      await expect(service.publish('my-article', 1)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+  });
+
+  // ── unpublish ─────────────────────────────────────────────────────────────
+
+  describe('unpublish', () => {
+    it('sets status to draft and saves', async () => {
+      const article = makeArticle({ status: 'published' });
+      mockArticleRepo.findOne.mockResolvedValueOnce(article);
+      const saved = { ...article, status: 'draft' };
+      mockArticleRepo.save.mockResolvedValueOnce(saved);
+
+      const result = await service.unpublish('my-article', 1);
+
+      expect(mockArticleRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'draft' }),
+      );
+      expect(result).toEqual(saved);
+    });
+
+    it('throws ForbiddenException when requester is not the author', async () => {
+      mockArticleRepo.findOne.mockResolvedValueOnce(
+        makeArticle({ authorId: 5 }),
+      );
+
+      await expect(service.unpublish('my-article', 1)).rejects.toBeInstanceOf(
         ForbiddenException,
       );
     });

@@ -8,8 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { Article } from './article.entity';
+import type { ArticleStatus } from './article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { PaginatedArticles, QueryArticleDto } from './dto/query-article.dto';
 import { t } from '../shared/util';
 
 @Injectable()
@@ -20,12 +22,37 @@ export class ArticlesService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findAll(): Promise<Article[]> {
-    return this.articleRepo.find({
-      where: { status: 'published' },
-      relations: ['author'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(query: QueryArticleDto): Promise<PaginatedArticles<Article>> {
+    const { page = 1, limit = 10, search, authorId } = query;
+
+    const qb = this.articleRepo
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.author', 'author')
+      .where('article.status = :status', { status: 'published' })
+      .orderBy('article.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (authorId) {
+      qb.andWhere('article.authorId = :authorId', { authorId });
+    }
+
+    if (search) {
+      qb.andWhere(
+        '(article.title LIKE :search OR article.description LIKE :search OR article.body LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findByAuthor(authorId: number): Promise<Article[]> {
@@ -71,7 +98,7 @@ export class ArticlesService {
       description: dto.description ?? null,
       status: dto.status ?? 'draft',
     });
-    return this.saveWithSlugRetry(article, baseSlug);
+    return this.dbSave(() => this.saveWithSlugRetry(article, baseSlug));
   }
 
   async update(
@@ -89,34 +116,56 @@ export class ArticlesService {
     }
 
     Object.assign(article, dto);
-    return baseSlug
-      ? this.saveWithSlugRetry(article, baseSlug, article.id)
-      : this.articleRepo.save(article);
+    return this.dbSave(() =>
+      baseSlug
+        ? this.saveWithSlugRetry(article, baseSlug, article.id)
+        : this.articleRepo.save(article),
+    );
   }
 
   async remove(id: number, requesterId: number): Promise<void> {
     const article = await this.findById(id);
     this.assertOwner(article, requesterId);
-    await this.articleRepo.remove(article);
+    try {
+      await this.articleRepo.remove(article);
+    } catch {
+      const msg = t(this.i18n, 'article.delete-failed');
+      throw new InternalServerErrorException(msg);
+    }
   }
 
   async publish(slug: string, requesterId: number): Promise<Article> {
-    const article = await this.findBySlug(slug);
-    this.assertOwner(article, requesterId);
-    article.status = 'published';
-    return this.articleRepo.save(article);
+    return this.setStatus(slug, requesterId, 'published');
   }
 
   async unpublish(slug: string, requesterId: number): Promise<Article> {
-    const article = await this.findBySlug(slug);
-    this.assertOwner(article, requesterId);
-    article.status = 'draft';
-    return this.articleRepo.save(article);
+    return this.setStatus(slug, requesterId, 'draft');
   }
 
   private assertOwner(article: Article, userId: number): void {
     if (article.authorId !== userId) {
       throw new ForbiddenException(t(this.i18n, 'article.forbidden'));
+    }
+  }
+
+  private async setStatus(
+    slug: string,
+    requesterId: number,
+    status: ArticleStatus,
+  ): Promise<Article> {
+    const article = await this.findBySlug(slug);
+    this.assertOwner(article, requesterId);
+    article.status = status;
+    return this.dbSave(() => this.articleRepo.save(article));
+  }
+
+  private async dbSave<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) throw error;
+      const msg = t(this.i18n, 'article.save-failed');
+      throw new InternalServerErrorException(msg);
     }
   }
 
@@ -139,8 +188,14 @@ export class ArticlesService {
       try {
         return await this.articleRepo.save(article);
       } catch (error) {
-        if (!this.isDuplicateSlugError(error) || attempt === MAX_RETRIES - 1) {
-          throw error;
+        if (!this.isDuplicateSlugError(error)) {
+          const msg = t(this.i18n, 'article.save-failed');
+          throw new InternalServerErrorException(msg);
+        }
+        if (attempt === MAX_RETRIES - 1) {
+          throw new InternalServerErrorException(
+            'Failed to generate a unique slug after retries',
+          );
         }
         article.slug = await this.uniqueSlug(baseSlug, excludeId);
       }

@@ -1,4 +1,6 @@
 {
   "not-found": "Article '{{args.slug}}' not found",
-  "forbidden": "You are not the author of this article"
+  "forbidden": "You are not the author of this article",
+  "save-failed": "Failed to save article",
+  "delete-failed": "Failed to delete article"
 }
