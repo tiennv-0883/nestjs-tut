@@ -63,6 +63,17 @@ export class ArticlesService {
     });
   }
 
+  async findPublishedBySlug(slug: string): Promise<Article> {
+    const article = await this.articleRepo.findOne({
+      where: { slug, status: 'published' },
+      relations: ['author'],
+    });
+    if (!article) {
+      throw new NotFoundException(t(this.i18n, 'article.not-found', { slug }));
+    }
+    return article;
+  }
+
   async findBySlug(slug: string): Promise<Article> {
     const article = await this.articleRepo.findOne({
       where: { slug },
@@ -81,7 +92,7 @@ export class ArticlesService {
     });
     if (!article) {
       throw new NotFoundException(
-        t(this.i18n, 'article.not-found', { slug: String(id) }),
+        t(this.i18n, 'article.not-found-by-id', { id }),
       );
     }
     return article;
@@ -193,16 +204,14 @@ export class ArticlesService {
           throw new InternalServerErrorException(msg);
         }
         if (attempt === MAX_RETRIES - 1) {
-          throw new InternalServerErrorException(
-            'Failed to generate a unique slug after retries',
-          );
+          const msg = t(this.i18n, 'article.slug-conflict');
+          throw new InternalServerErrorException(msg);
         }
         article.slug = await this.uniqueSlug(baseSlug, excludeId);
       }
     }
-    throw new InternalServerErrorException(
-      'Failed to generate a unique slug after retries',
-    );
+    const msg = t(this.i18n, 'article.slug-conflict');
+    throw new InternalServerErrorException(msg);
   }
 
   private async uniqueSlug(base: string, excludeId?: number): Promise<string> {

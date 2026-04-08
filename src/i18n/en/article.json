@@ -1,6 +1,8 @@
 {
   "not-found": "Article '{{args.slug}}' not found",
+  "not-found-by-id": "Article #{{args.id}} not found",
   "forbidden": "You are not the author of this article",
   "save-failed": "Failed to save article",
-  "delete-failed": "Failed to delete article"
+  "delete-failed": "Failed to delete article",
+  "slug-conflict": "Failed to generate a unique slug after multiple retries"
 }

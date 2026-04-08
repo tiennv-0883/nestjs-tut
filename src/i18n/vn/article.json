@@ -1,6 +1,8 @@
 {
   "not-found": "Không tìm thấy bài viết '{{args.slug}}'",
+  "not-found-by-id": "Không tìm thấy bài viết #{{args.id}}",
   "forbidden": "Bạn không phải tác giả của bài viết này",
   "save-failed": "Lưu bài viết thất bại",
-  "delete-failed": "Xóa bài viết thất bại"
+  "delete-failed": "Xóa bài viết thất bại",
+  "slug-conflict": "Không thể tạo slug duy nhất sau nhiều lần thử"
 }

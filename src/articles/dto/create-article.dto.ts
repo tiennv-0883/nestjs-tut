@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsArray,
   IsIn,
+  Matches,
   MinLength,
   MaxLength,
   ArrayMaxSize,
@@ -16,6 +17,9 @@ export class CreateArticleDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
+  @Matches(/[a-zA-Z0-9]/, {
+    message: 'title must contain at least one alphanumeric character',
+  })
   title: string;
 
   @ApiPropertyOptional({ example: 'A short summary of the article.' })

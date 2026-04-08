@@ -58,7 +58,7 @@ export class ArticlesController {
   @ApiResponse({ status: 404, description: 'Article not found' })
   @Get(':slug')
   async findOne(@Param('slug') slug: string) {
-    const article = await this.articlesService.findBySlug(slug);
+    const article = await this.articlesService.findPublishedBySlug(slug);
     return ArticleSerializer.serializeOne(
       article as unknown as Record<string, unknown>,
       { type: 'DETAIL' },

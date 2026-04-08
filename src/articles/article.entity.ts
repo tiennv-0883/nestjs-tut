@@ -58,11 +58,13 @@ export class Article {
   }
 
   static slugify(title: string): string {
-    return title
+    const slug = title
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return slug || 'untitled';
   }
 }

@@ -11,7 +11,7 @@ describe('ArticlesController', () => {
   const mockArticlesService = {
     findAll: jest.fn(),
     findByAuthor: jest.fn(),
-    findBySlug: jest.fn(),
+    findPublishedBySlug: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
@@ -103,19 +103,21 @@ describe('ArticlesController', () => {
   // ── GET /articles/:slug ───────────────────────────────────────────────────
 
   describe('findOne', () => {
-    it('returns serialized article by slug', async () => {
-      const article = makeArticle();
-      mockArticlesService.findBySlug.mockResolvedValueOnce(article);
+    it('returns serialized published article by slug', async () => {
+      const article = makeArticle({ status: 'published' });
+      mockArticlesService.findPublishedBySlug.mockResolvedValueOnce(article);
 
       const result = await controller.findOne('hello');
 
-      expect(mockArticlesService.findBySlug).toHaveBeenCalledWith('hello');
+      expect(mockArticlesService.findPublishedBySlug).toHaveBeenCalledWith(
+        'hello',
+      );
       expect(ArticleSerializer.serializeOne).toHaveBeenCalled();
       expect(result).toEqual(article);
     });
 
-    it('propagates NotFoundException when not found', async () => {
-      mockArticlesService.findBySlug.mockRejectedValueOnce(
+    it('propagates NotFoundException when article not found or is a draft', async () => {
+      mockArticlesService.findPublishedBySlug.mockRejectedValueOnce(
         new NotFoundException(),
       );
 
