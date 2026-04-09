@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { Comment } from './comment.entity';
 import { Article } from '../article.entity';
+import { CommentSerializer } from './comment.serializer';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { t } from '../../shared/util';
 
@@ -22,27 +23,37 @@ export class CommentsService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findAllByArticle(articleId: number): Promise<Comment[]> {
+  async findAllByArticle(
+    articleId: number,
+  ): Promise<Record<string, unknown>[]> {
     await this.findArticleOrFail(articleId);
-    return this.commentRepo.find({
+    const comments = await this.commentRepo.find({
       where: { articleId },
       relations: ['author'],
       order: { createdAt: 'ASC' },
     });
+    return CommentSerializer.serializeMany(
+      comments as unknown as Record<string, unknown>[],
+      { type: 'DEFAULT' },
+    );
   }
 
   async create(
     articleId: number,
     dto: CreateCommentDto,
     authorId: number,
-  ): Promise<Comment> {
+  ): Promise<Record<string, unknown>> {
     await this.findArticleOrFail(articleId);
     const comment = this.commentRepo.create({ ...dto, articleId, authorId });
     const saved = await this.dbSave(() => this.commentRepo.save(comment));
-    return this.commentRepo.findOne({
+    const full = await this.commentRepo.findOne({
       where: { id: saved.id },
       relations: ['author'],
-    }) as Promise<Comment>;
+    });
+    return CommentSerializer.serializeOne(
+      full as unknown as Record<string, unknown>,
+      { type: 'DEFAULT' },
+    );
   }
 
   async remove(

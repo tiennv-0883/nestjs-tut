@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CommentsController } from './comments.controller';
 import { CommentsService } from './comments.service';
-import { CommentSerializer } from './comment.serializer';
 import { JwtAuthGuard } from '../../auth/jwt.guard';
 
 describe('CommentsController', () => {
@@ -29,9 +28,6 @@ describe('CommentsController', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    jest.spyOn(CommentSerializer, 'serializeMany').mockImplementation((c) => c);
-    jest.spyOn(CommentSerializer, 'serializeOne').mockImplementation((c) => c);
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CommentsController],
       providers: [{ provide: CommentsService, useValue: mockCommentsService }],
@@ -57,7 +53,6 @@ describe('CommentsController', () => {
       const result = await controller.findAll(1);
 
       expect(mockCommentsService.findAllByArticle).toHaveBeenCalledWith(1);
-      expect(CommentSerializer.serializeMany).toHaveBeenCalled();
       expect(result).toEqual(comments);
     });
 
@@ -83,7 +78,6 @@ describe('CommentsController', () => {
       const result = await controller.create(1, dto, mockReq(2));
 
       expect(mockCommentsService.create).toHaveBeenCalledWith(1, dto, 2);
-      expect(CommentSerializer.serializeOne).toHaveBeenCalled();
       expect(result).toEqual(comment);
     });
 

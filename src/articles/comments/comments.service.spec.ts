@@ -75,7 +75,14 @@ describe('CommentsService', () => {
       expect(mockCommentRepo.find).toHaveBeenCalledWith(
         expect.objectContaining({ where: { articleId: 1 } }),
       );
-      expect(result).toEqual(comments);
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 1,
+          body: 'Great post!',
+          articleId: 1,
+          author: null,
+        }),
+      ]);
     });
 
     it('throws NotFoundException when article does not exist', async () => {
@@ -115,7 +122,14 @@ describe('CommentsService', () => {
         where: { id: comment.id },
         relations: ['author'],
       });
-      expect(result).toEqual(commentWithAuthor);
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: 1,
+          body: 'Great post!',
+          articleId: 1,
+          author: { id: 2, email: 'a@test.com', name: 'A' },
+        }),
+      );
     });
 
     it('throws NotFoundException when article does not exist', async () => {
