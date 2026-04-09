@@ -1,0 +1,8 @@
+{
+  "user-not-found": "Không tìm thấy người dùng #{{args.id}}",
+  "cannot-follow-self": "Bạn không thể tự theo dõi chính mình",
+  "already-following": "Bạn đã theo dõi người dùng này rồi",
+  "not-following": "Bạn chưa theo dõi người dùng này",
+  "save-failed": "Lưu theo dõi thất bại",
+  "delete-failed": "Hủy theo dõi thất bại"
+}

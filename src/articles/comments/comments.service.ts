@@ -11,7 +11,7 @@ import { Comment } from './comment.entity';
 import { Article } from '../article.entity';
 import { CommentSerializer } from './comment.serializer';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { t } from '../../shared/util';
+import { dbSave, t } from '../../shared/util';
 
 @Injectable()
 export class CommentsService {
@@ -45,11 +45,23 @@ export class CommentsService {
   ): Promise<Record<string, unknown>> {
     await this.findArticleOrFail(articleId);
     const comment = this.commentRepo.create({ ...dto, articleId, authorId });
-    const saved = await this.dbSave(() => this.commentRepo.save(comment));
-    const full = await this.commentRepo.findOne({
-      where: { id: saved.id },
-      relations: ['author'],
-    });
+    const saved = await dbSave(
+      () => this.commentRepo.save(comment),
+      t(this.i18n, 'comment.save-failed'),
+    );
+    const full = await dbSave(
+      () =>
+        this.commentRepo.findOne({
+          where: { id: saved.id },
+          relations: ['author'],
+        }),
+      t(this.i18n, 'comment.save-failed'),
+    );
+    if (!full) {
+      throw new InternalServerErrorException(
+        t(this.i18n, 'comment.save-failed'),
+      );
+    }
     return CommentSerializer.serializeOne(
       full as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },
@@ -75,17 +87,6 @@ export class CommentsService {
     } catch {
       throw new InternalServerErrorException(
         t(this.i18n, 'comment.delete-failed'),
-      );
-    }
-  }
-
-  private async dbSave<T>(fn: () => Promise<T>): Promise<T> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) throw error;
-      throw new InternalServerErrorException(
-        t(this.i18n, 'comment.save-failed'),
       );
     }
   }

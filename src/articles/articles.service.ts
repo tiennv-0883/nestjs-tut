@@ -12,7 +12,7 @@ import type { ArticleStatus } from './article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { PaginatedArticles, QueryArticleDto } from './dto/query-article.dto';
-import { t } from '../shared/util';
+import { t, dbSave } from '../shared/util';
 
 @Injectable()
 export class ArticlesService {
@@ -109,7 +109,10 @@ export class ArticlesService {
       description: dto.description ?? null,
       status: dto.status ?? 'draft',
     });
-    return this.dbSave(() => this.saveWithSlugRetry(article, baseSlug));
+    return dbSave(
+      () => this.saveWithSlugRetry(article, baseSlug),
+      t(this.i18n, 'article.save-failed'),
+    );
   }
 
   async update(
@@ -127,10 +130,12 @@ export class ArticlesService {
     }
 
     Object.assign(article, dto);
-    return this.dbSave(() =>
-      baseSlug
-        ? this.saveWithSlugRetry(article, baseSlug, article.id)
-        : this.articleRepo.save(article),
+    return dbSave(
+      () =>
+        baseSlug
+          ? this.saveWithSlugRetry(article, baseSlug, article.id)
+          : this.articleRepo.save(article),
+      t(this.i18n, 'article.save-failed'),
     );
   }
 
@@ -167,17 +172,10 @@ export class ArticlesService {
     const article = await this.findBySlug(slug);
     this.assertOwner(article, requesterId);
     article.status = status;
-    return this.dbSave(() => this.articleRepo.save(article));
-  }
-
-  private async dbSave<T>(fn: () => Promise<T>): Promise<T> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) throw error;
-      const msg = t(this.i18n, 'article.save-failed');
-      throw new InternalServerErrorException(msg);
-    }
+    return dbSave(
+      () => this.articleRepo.save(article),
+      t(this.i18n, 'article.save-failed'),
+    );
   }
 
   private isDuplicateSlugError(error: unknown): boolean {

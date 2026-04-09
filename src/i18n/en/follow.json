@@ -1,0 +1,8 @@
+{
+  "user-not-found": "User #{{args.id}} not found",
+  "cannot-follow-self": "You cannot follow yourself",
+  "already-following": "You are already following this user",
+  "not-following": "You are not following this user",
+  "save-failed": "Failed to save follow",
+  "delete-failed": "Failed to unfollow"
+}

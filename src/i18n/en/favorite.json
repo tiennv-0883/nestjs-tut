@@ -1,0 +1,7 @@
+{
+  "article-not-found": "Article #{{args.id}} not found",
+  "not-found": "Favorite not found",
+  "already-favorited": "You have already favorited this article",
+  "save-failed": "Failed to save favorite",
+  "delete-failed": "Failed to remove favorite"
+}

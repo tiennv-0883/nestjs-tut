@@ -1,0 +1,7 @@
+{
+  "article-not-found": "Không tìm thấy bài viết #{{args.id}}",
+  "not-found": "Không tìm thấy mục yêu thích",
+  "already-favorited": "Bạn đã yêu thích bài viết này rồi",
+  "save-failed": "Lưu mục yêu thích thất bại",
+  "delete-failed": "Xóa mục yêu thích thất bại"
+}
