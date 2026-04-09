@@ -1,0 +1,6 @@
+{
+  "not-found": "Không tìm thấy bình luận #{{args.id}}",
+  "forbidden": "Bạn không phải tác giả của bình luận này",
+  "save-failed": "Lưu bình luận thất bại",
+  "delete-failed": "Xóa bình luận thất bại"
+}
