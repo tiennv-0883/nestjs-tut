@@ -111,12 +111,12 @@ describe('CommentsController', () => {
   // ── DELETE /articles/:articleId/comments/:id ──────────────────────────────
 
   describe('remove', () => {
-    it('delegates to service with comment id and userId from JWT', async () => {
+    it('delegates to service with comment id, articleId, and userId from JWT', async () => {
       mockCommentsService.remove.mockResolvedValueOnce(undefined);
 
       await controller.remove(1, 1, mockReq(2));
 
-      expect(mockCommentsService.remove).toHaveBeenCalledWith(1, 2);
+      expect(mockCommentsService.remove).toHaveBeenCalledWith(1, 1, 2);
     });
 
     it('propagates NotFoundException when comment does not exist', async () => {

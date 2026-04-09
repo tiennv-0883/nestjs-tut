@@ -38,11 +38,21 @@ export class CommentsService {
   ): Promise<Comment> {
     await this.findArticleOrFail(articleId);
     const comment = this.commentRepo.create({ ...dto, articleId, authorId });
-    return this.dbSave(() => this.commentRepo.save(comment));
+    const saved = await this.dbSave(() => this.commentRepo.save(comment));
+    return this.commentRepo.findOne({
+      where: { id: saved.id },
+      relations: ['author'],
+    }) as Promise<Comment>;
   }
 
-  async remove(id: number, requesterId: number): Promise<void> {
-    const comment = await this.commentRepo.findOne({ where: { id } });
+  async remove(
+    id: number,
+    articleId: number,
+    requesterId: number,
+  ): Promise<void> {
+    const comment = await this.commentRepo.findOne({
+      where: { id, articleId },
+    });
     if (!comment) {
       throw new NotFoundException(t(this.i18n, 'comment.not-found', { id }));
     }

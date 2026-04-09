@@ -94,8 +94,12 @@ describe('CommentsService', () => {
     it('creates and saves a comment when article exists', async () => {
       mockArticleRepo.findOne.mockResolvedValueOnce(makeArticle());
       const comment = makeComment();
+      const commentWithAuthor = makeComment({
+        author: { id: 2, email: 'a@test.com', name: 'A' } as never,
+      });
       mockCommentRepo.create.mockReturnValueOnce(comment);
       mockCommentRepo.save.mockResolvedValueOnce(comment);
+      mockCommentRepo.findOne.mockResolvedValueOnce(commentWithAuthor);
 
       const result = await service.create(1, { body: 'Great post!' }, 2);
 
@@ -107,7 +111,11 @@ describe('CommentsService', () => {
         }),
       );
       expect(mockCommentRepo.save).toHaveBeenCalledWith(comment);
-      expect(result).toEqual(comment);
+      expect(mockCommentRepo.findOne).toHaveBeenCalledWith({
+        where: { id: comment.id },
+        relations: ['author'],
+      });
+      expect(result).toEqual(commentWithAuthor);
     });
 
     it('throws NotFoundException when article does not exist', async () => {
@@ -138,15 +146,27 @@ describe('CommentsService', () => {
       mockCommentRepo.findOne.mockResolvedValueOnce(comment);
       mockCommentRepo.remove.mockResolvedValueOnce(undefined);
 
-      await service.remove(1, 5);
+      await service.remove(1, 1, 5);
 
+      expect(mockCommentRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 1, articleId: 1 },
+      });
       expect(mockCommentRepo.remove).toHaveBeenCalledWith(comment);
     });
 
     it('throws NotFoundException when comment does not exist', async () => {
       mockCommentRepo.findOne.mockResolvedValueOnce(null);
 
-      await expect(service.remove(99, 1)).rejects.toBeInstanceOf(
+      await expect(service.remove(99, 1, 1)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(mockCommentRepo.remove).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when comment does not belong to the article', async () => {
+      mockCommentRepo.findOne.mockResolvedValueOnce(null); // { id:1, articleId:99 } → not found
+
+      await expect(service.remove(1, 99, 5)).rejects.toBeInstanceOf(
         NotFoundException,
       );
       expect(mockCommentRepo.remove).not.toHaveBeenCalled();
@@ -157,7 +177,7 @@ describe('CommentsService', () => {
         makeComment({ authorId: 5 }),
       );
 
-      await expect(service.remove(1, 99)).rejects.toBeInstanceOf(
+      await expect(service.remove(1, 1, 99)).rejects.toBeInstanceOf(
         ForbiddenException,
       );
       expect(mockCommentRepo.remove).not.toHaveBeenCalled();
@@ -169,7 +189,7 @@ describe('CommentsService', () => {
       );
       mockCommentRepo.remove.mockRejectedValueOnce(new Error('DB error'));
 
-      await expect(service.remove(1, 5)).rejects.toBeInstanceOf(
+      await expect(service.remove(1, 1, 5)).rejects.toBeInstanceOf(
         InternalServerErrorException,
       );
     });

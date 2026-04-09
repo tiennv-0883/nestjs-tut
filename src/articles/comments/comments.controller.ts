@@ -66,10 +66,10 @@ export class CommentsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('articleId', ParseIntPipe) _articleId: number,
+    @Param('articleId', ParseIntPipe) articleId: number,
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithUser,
   ) {
-    return this.commentsService.remove(id, req.user.sub);
+    return this.commentsService.remove(id, articleId, req.user.sub);
   }
 }
