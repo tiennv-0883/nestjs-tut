@@ -46,10 +46,12 @@ export class CommentsService {
     await this.findArticleOrFail(articleId);
     const comment = this.commentRepo.create({ ...dto, articleId, authorId });
     const saved = await this.dbSave(() => this.commentRepo.save(comment));
-    const full = await this.commentRepo.findOne({
-      where: { id: saved.id },
-      relations: ['author'],
-    });
+    const full = await this.dbSave(() =>
+      this.commentRepo.findOne({
+        where: { id: saved.id },
+        relations: ['author'],
+      }),
+    );
     return CommentSerializer.serializeOne(
       full as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },

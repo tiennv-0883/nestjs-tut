@@ -13,8 +13,6 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Article, Comment, Favorite]), AuthModule],
-  // FavoritesController registered before ArticlesController so that
-  // GET /articles/favorites takes precedence over GET /articles/:slug
   controllers: [FavoritesController, ArticlesController, CommentsController],
   providers: [ArticlesService, CommentsService, FavoritesService],
 })

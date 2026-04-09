@@ -56,10 +56,12 @@ export class FavoritesService {
 
     const favorite = this.favoriteRepo.create({ userId, articleId });
     const saved = await this.dbSave(() => this.favoriteRepo.save(favorite));
-    const full = await this.favoriteRepo.findOne({
-      where: { id: saved.id },
-      relations: ['article', 'article.author'],
-    });
+    const full = await this.dbSave(() =>
+      this.favoriteRepo.findOne({
+        where: { id: saved.id },
+        relations: ['article', 'article.author'],
+      }),
+    );
     return FavoriteSerializer.serializeOne(
       full as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },
