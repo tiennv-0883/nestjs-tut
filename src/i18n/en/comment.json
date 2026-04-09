@@ -1,0 +1,6 @@
+{
+  "not-found": "Comment #{{args.id}} not found",
+  "forbidden": "You are not the author of this comment",
+  "save-failed": "Failed to save comment",
+  "delete-failed": "Failed to delete comment"
+}
