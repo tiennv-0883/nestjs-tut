@@ -52,6 +52,11 @@ export class CommentsService {
         relations: ['author'],
       }),
     );
+    if (!full) {
+      throw new InternalServerErrorException(
+        t(this.i18n, 'comment.save-failed'),
+      );
+    }
     return CommentSerializer.serializeOne(
       full as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },

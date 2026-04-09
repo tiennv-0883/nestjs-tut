@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { Favorite } from './favorite.entity';
 import { Article } from '../article.entity';
@@ -40,6 +40,7 @@ export class FavoritesService {
   ): Promise<Record<string, unknown>> {
     const article = await this.articleRepo.findOne({
       where: { id: articleId },
+      relations: ['author'],
     });
     if (!article) {
       throw new NotFoundException(
@@ -56,14 +57,9 @@ export class FavoritesService {
 
     const favorite = this.favoriteRepo.create({ userId, articleId });
     const saved = await this.dbSave(() => this.favoriteRepo.save(favorite));
-    const full = await this.dbSave(() =>
-      this.favoriteRepo.findOne({
-        where: { id: saved.id },
-        relations: ['article', 'article.author'],
-      }),
-    );
+    saved.article = article;
     return FavoriteSerializer.serializeOne(
-      full as unknown as Record<string, unknown>,
+      saved as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },
     );
   }
@@ -89,6 +85,12 @@ export class FavoritesService {
       return await fn();
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
+      if (
+        error instanceof QueryFailedError &&
+        (error as QueryFailedError & { code: string }).code === 'ER_DUP_ENTRY'
+      ) {
+        throw new ConflictException(t(this.i18n, 'favorite.already-favorited'));
+      }
       throw new InternalServerErrorException(
         t(this.i18n, 'favorite.save-failed'),
       );

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { Follow } from './follow.entity';
 import { User } from '../user.entity';
@@ -61,14 +61,9 @@ export class FollowsService {
 
     const follow = this.followRepo.create({ followerId, followingId });
     const saved = await this.dbSave(() => this.followRepo.save(follow));
-    const full = await this.dbSave(() =>
-      this.followRepo.findOne({
-        where: { id: saved.id },
-        relations: ['following'],
-      }),
-    );
+    saved.following = target;
     return FollowSerializer.serializeOne(
-      full as unknown as Record<string, unknown>,
+      saved as unknown as Record<string, unknown>,
       { type: 'DEFAULT' },
     );
   }
@@ -94,6 +89,12 @@ export class FollowsService {
       return await fn();
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
+      if (
+        error instanceof QueryFailedError &&
+        (error as QueryFailedError & { code: string }).code === 'ER_DUP_ENTRY'
+      ) {
+        throw new ConflictException(t(this.i18n, 'follow.already-following'));
+      }
       throw new InternalServerErrorException(
         t(this.i18n, 'follow.save-failed'),
       );
