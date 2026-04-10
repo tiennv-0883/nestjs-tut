@@ -109,10 +109,11 @@ export class ArticlesService {
       description: dto.description ?? null,
       status: dto.status ?? 'draft',
     });
-    return dbSave(
+    const saved = await dbSave(
       () => this.saveWithSlugRetry(article, baseSlug),
       t(this.i18n, 'article.save-failed'),
     );
+    return this.findById(saved.id);
   }
 
   async update(

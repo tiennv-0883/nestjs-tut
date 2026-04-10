@@ -145,6 +145,7 @@ describe('ArticlesService', () => {
       const saved = makeArticle({ authorId: 2 });
       mockArticleRepo.create.mockReturnValueOnce(saved);
       mockArticleRepo.save.mockResolvedValueOnce(saved);
+      mockArticleRepo.findOne.mockResolvedValueOnce(saved);
 
       const result = await service.create(
         { title: 'My Article', body: 'body' },
@@ -167,6 +168,7 @@ describe('ArticlesService', () => {
       const saved = makeArticle({ slug: 'my-article-1' });
       mockArticleRepo.create.mockReturnValueOnce(saved);
       mockArticleRepo.save.mockResolvedValueOnce(saved);
+      mockArticleRepo.findOne.mockResolvedValueOnce(saved);
 
       await service.create({ title: 'My Article', body: 'body' }, 1);
 
