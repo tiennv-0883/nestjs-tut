@@ -106,9 +106,7 @@ describe('FavoritesService', () => {
   describe('favorite', () => {
     it('creates and returns a serialized favorite', async () => {
       mockArticleRepo.findOne.mockResolvedValueOnce(makeArticle());
-      mockFavoriteRepo.findOne
-        .mockResolvedValueOnce(null) // existing check
-        .mockResolvedValueOnce(makeFavoriteWithRelations()); // refetch with relations
+      mockFavoriteRepo.findOne.mockResolvedValueOnce(null);
       const favorite = makeFavorite();
       mockFavoriteRepo.create.mockReturnValueOnce(favorite);
       mockFavoriteRepo.save.mockResolvedValueOnce(favorite);
@@ -117,6 +115,7 @@ describe('FavoritesService', () => {
 
       expect(mockArticleRepo.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
+        relations: ['author'],
       });
       expect(mockFavoriteRepo.create).toHaveBeenCalledWith({
         userId: 2,

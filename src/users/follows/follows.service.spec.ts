@@ -104,9 +104,7 @@ describe('FollowsService', () => {
   describe('follow', () => {
     it('creates and returns a serialized follow', async () => {
       mockUserRepo.findOne.mockResolvedValueOnce(makeUser());
-      mockFollowRepo.findOne
-        .mockResolvedValueOnce(null) // existing check
-        .mockResolvedValueOnce(makeFollowWithRelations()); // refetch with relations
+      mockFollowRepo.findOne.mockResolvedValueOnce(null);
       const follow = makeFollow();
       mockFollowRepo.create.mockReturnValueOnce(follow);
       mockFollowRepo.save.mockResolvedValueOnce(follow);
